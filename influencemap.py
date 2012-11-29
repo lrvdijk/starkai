@@ -3,17 +3,16 @@
 =======================================================================
 
 This module contains a class for creating and modifying influence maps.
+
+.. module:: starkai.influencemap
+   :synopsis: Infuence map implementations
+  
+.. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
 
+from starkai.util import Counter, lerp
 from abc import ABCMeta, abstractmethod
 import math
-
-def lerp(x, y, s):
-	"""
-		Linear interpolation function
-	"""
-	
-	return x*(1-s) + y*s
 
 class BaseInfluenceMap(object):
 	"""
@@ -26,7 +25,7 @@ class BaseInfluenceMap(object):
 		self.decay = decay
 		self.momentum = mometum
 		
-		self.influence = {}
+		self.influence = Counter()
 	
 	def set_influence(self, position, influence):
 		self.influence[position] = influence
@@ -63,6 +62,44 @@ class BaseInfluenceMap(object):
 		
 		del self.influence
 		self.influence = new_influence
+	
+	def __add__(self, other):
+		"""
+			Adds two influence maps to each other, and returns an union
+			of keys of both maps
+			
+			The new map has default values for decay and momentum
+		"""
+		
+		new_map = self.__class__()
+		
+		for key in self.influence:
+			new_map[key] = self.influence[key] + other.influence[key]
+		
+		for key in other.influence:
+			if not key in self.influence:
+				new_map[key] = other.influence[key]
+		
+		return new_map
+		
+	def __sub__(self, other):
+		"""
+			Adds two influence maps to each other, and returns an union
+			of keys of both maps
+			
+			The new map has default values for decay and momentum
+		"""
+		
+		new_map = self.__class__()
+		
+		for key in self.influence:
+			new_map[key] = self.influence[key] - other.influence[key]
+		
+		for key in other.influence:
+			if not key in self.influence:
+				new_map[key] = other.influence[key]
+		
+		return new_map
 		
 class GridInfluenceMap(BaseInfluenceMap):
 	"""
@@ -109,9 +146,4 @@ class GridInfluenceMap(BaseInfluenceMap):
 			
 			neighbours.append(new_pos)
 		
-		return neighbours
-	
-	
-	
-	
-		
+		return neighbours	

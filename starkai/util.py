@@ -10,6 +10,11 @@ This module contains a class for creating and modifying influence maps.
 .. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
 
+import math
+import functools
+
+sign = functools.partial(math.copysign, 1)
+
 def lerp(x, y, s):
 	"""
 		Linear interpolation function

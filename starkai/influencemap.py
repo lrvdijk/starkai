@@ -42,23 +42,27 @@ class BaseInfluenceMap(object):
 			    (position, distance)
 		"""
 	
-	def update_map(self):
+	def update_map(self, num_times=1):
 		"""
 			Performs a new iteration over the influence maps, and calculates
 			the new values for each point
 		"""
 		
 		new_influence = {}
-		
-		for position in self.influence:
-			max_infl = 0.0
-			
-			for neighbour, distance in self.get_neighbours(position):
-				influence = self.get_influence(neighbour) * math.exp(-distance * self.decay)
-				
-				max_infl = max(influence, max_infl)
-			
-			new_influence[position] = lerp(self.get_influence(position), max_infl, self.momentum)
+
+		i = 0
+		while i < num_times:
+			for position in self.influence:
+				max_infl = 0.0
+
+				for neighbour, distance in self.get_neighbours(position):
+					influence = self.get_influence(neighbour) * math.exp(-distance * self.decay)
+
+					max_infl = max(influence, max_infl)
+
+				new_influence[position] = lerp(self.get_influence(position), max_infl, self.momentum)
+
+			i += 1
 		
 		del self.influence
 		self.influence = new_influence
@@ -100,6 +104,19 @@ class BaseInfluenceMap(object):
 				new_map[key] = other.influence[key]
 		
 		return new_map
+	
+	def __mul__(self, scalar):
+		"""
+			Multiplies each element with the given scalar
+		"""
+		
+		new_map = self.__class__()
+		
+		for key in self.influence:
+			new_map[key] = self.influence[key] * scalar
+		
+		
+		return new_map
 		
 class GridInfluenceMap(BaseInfluenceMap):
 	"""
@@ -138,10 +155,10 @@ class GridInfluenceMap(BaseInfluenceMap):
 			if new_pos in self.blocked:
 				continue
 			
-			if new_pos[0] < 0 or new_pos[0] > self.width:
+			if new_pos[0] < 0 or new_pos[0] >= self.width:
 				continue
 			
-			if new_pos[1] < 0 or new_pos[1] > self.height:
+			if new_pos[1] < 0 or new_pos[1] >= self.height:
 				continue
 			
 			neighbours.append(new_pos)

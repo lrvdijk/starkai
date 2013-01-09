@@ -25,10 +25,21 @@ class RobbStarkCommander(Commander):
 	def initialize(self):
 		self.verbose = True
 
+		self.blocked = []
+
+		for x, ylist in enumerate(self.game.blockHeights):
+			for y, value in enumerate(ylist):
+				if value > 0:
+					self.blocked.append((x, y))
+
 		# Setup some influence maps
 		self.my_influence = GridInfluenceMap(width=self.level.width, height=self.level.height)
 		self.enemy_influence = GridInfluenceMap(width=self.level.width, height=self.level.height)
 		self.goal_influence = GridInfluenceMap(0.7, 0.8, self.level.width, self.level.height)
+
+		self.my_influence.set_blocked(self.blocked)
+		self.enemy_influence.set_blocked(self.blocked)
+		self.goal_influence.set_blocked(self.blocked)
 
 		for bot in self.game.bots_alive:
 			self.my_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)

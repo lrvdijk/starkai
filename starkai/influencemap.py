@@ -76,6 +76,7 @@ class BaseInfluenceMap(object):
 		"""
 		
 		new_map = self.__class__()
+		new_map.set_blocked(self.blocked)
 		
 		for key in self.influence:
 			new_map[key] = self.influence[key] + other.influence[key]
@@ -95,6 +96,7 @@ class BaseInfluenceMap(object):
 		"""
 		
 		new_map = self.__class__()
+		new_map.set_blocked(self.blocked)
 		
 		for key in self.influence:
 			new_map[key] = self.influence[key] - other.influence[key]
@@ -111,6 +113,7 @@ class BaseInfluenceMap(object):
 		"""
 		
 		new_map = self.__class__()
+		new_map.set_blocked(self.blocked)
 		
 		for key in self.influence:
 			new_map[key] = self.influence[key] * scalar

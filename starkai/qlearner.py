@@ -113,7 +113,7 @@ class ApproximateQLearner(BaseQLearner):
 	"""
 
 	def __init__(self, **args):
-		BaseQLearner.__init__(**args)
+		BaseQLearner.__init__(self, **args)
 
 		self.weights = Counter()
 

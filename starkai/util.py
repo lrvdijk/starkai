@@ -12,6 +12,7 @@ This module contains a class for creating and modifying influence maps.
 
 import math
 import functools
+import random
 
 sign = functools.partial(math.copysign, 1)
 
@@ -21,6 +22,11 @@ def lerp(x, y, s):
 	"""
 	
 	return x*(1-s) + y*s
+
+def flip_coin(p):
+	r = random.random()
+
+	return p < r
 
 class Counter(dict):
 	"""

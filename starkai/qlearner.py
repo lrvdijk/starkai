@@ -59,9 +59,30 @@ class BaseQLearner(object):
 			* gamma: discount factor
 		"""
 
-		self.epsilon = epsilon
-		self.alpha = alpha
-		self.gamma = gamma
+		self._epsilon = epsilon
+		self._alpha = alpha
+		self._gamma = gamma
+
+	@property
+	def epsilon(self):
+		if callable(self._epsilon):
+			return self._epsilon()
+		else:
+			return self._epsilon
+
+	@property
+	def alpha(self):
+		if callable(self._alpha):
+			return self._alpha()
+		else:
+			return self._alpha
+
+	@property
+	def gamma(self):
+		if callable(self._gamma):
+			return self._gamma()
+		else:
+			return self._gamma
 
 	@abstractmethod
 	def get_qvalue(self, state, action):
@@ -105,7 +126,6 @@ class BaseQLearner(object):
 			best_actions = [action for action in actions if self.get_qvalue(state, action) == highest]
 			return random.choice(best_actions)
 
-
 class ApproximateQLearner(BaseQLearner):
 	"""
 		Using a set of features, approximate the best available action,
@@ -116,6 +136,18 @@ class ApproximateQLearner(BaseQLearner):
 		BaseQLearner.__init__(self, **args)
 
 		self.weights = Counter()
+
+	def set_weights(self, weights):
+		"""
+			Set the weights for the given features
+
+			:Arguments:
+				* weights: A dictionary containing the weights you want to set, doesn't override the others
+		"""
+
+		for key in weights:
+			self.weights[key] = weights[key]
+
 
 	def get_qvalue(self, state, action):
 		"""
@@ -142,7 +174,7 @@ class ApproximateQLearner(BaseQLearner):
 		features = state.get_features(action)
 
 		for feature in features:
-			self.weights[feature] = self.weights[feature] + self.alpha * correction * features[feature]
+			self.weights[feature] += self.alpha * correction * features[feature]
 
 
 

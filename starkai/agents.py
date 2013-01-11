@@ -13,10 +13,9 @@ attackers.
 """
 
 from math import floor
-from abc import ABCMeta, abstractmethod
 from starkai.qlearner import ApproximateQLearner, BaseState
 
-class CTFState(BaseState):
+class PositionState(BaseState):
 	"""
 		A state class used for Q-learning,
 	"""
@@ -59,25 +58,45 @@ class CTFState(BaseState):
 
 class GeneralAgent(object):
 	"""
-		A general agent, tries to balance between attacking and defending
+		A general agent, can attack and defend
 	"""
 
-	def __init__(self, living_penalty=0.0, **args):
+	def __init__(self, bot, commander, living_penalty=0.0, **args):
 		"""
 			Initializes the agent
 
 			:Arguments:
 
+			* bot_info (:class:`api.gameinfo.BotInfo`): The BotInfo object which has this role
+			* commander (:class:`starkai.RobbStarkCommander`): The commander object
 			* living_penalty (float): The penalty the agent receives with each tick
 			* Other arguments are passed to :class:`ApproximateQLearner`
 		"""
 
+		self.bot = bot
 		self.living_penalty = living_penalty
+		self.movement_learner = ApproximateQLearner(**args)
+		self.action_learner = ApproximateQLearner(**args)
+		self.commander = commander
 
-	def tick(self, commander):
+		self.current_state = PositionState((self.bot.position.x, self.bot.position.y), commander.my_influence,
+			commander.enemy_influence, commander.final_influence)
+
+	def issue_new_command(self, commander):
 		"""
-			Perform commands
+			Issue a new command for this bot
 		"""
+
+		if self.bot.health <= 0:
+			state =
+		# Find new position
+
+
+
+
+
+
+
 
 
 

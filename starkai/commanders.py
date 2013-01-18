@@ -14,8 +14,11 @@ from api import Commander
 from api import commands
 from api import Vector2
 from math import floor
+import random
 
+from starkai.util import Counter
 from starkai.influencemap import GridInfluenceMap
+from starkai.visibility import Wave
 
 class RobbStarkCommander(Commander):
 	"""
@@ -60,6 +63,32 @@ class RobbStarkCommander(Commander):
 
 		self.influence_map = self.my_influence - self.enemy_influence
 		self.final_influence = self.influence_map + self.goal_influence
+
+		# Calculate visibility map
+		wave_calc = Wave(self.level.width, self.level.height, self.is_blocked, self.set_visible)
+		self.visibility = Counter()
+
+		for i in range(200):
+			point = Vector2(random.randint(0, self.level.width), random.randint(0, self.level.height))
+			wave_calc.compute(point)
+
+		self.visibility.normalize()
+
+	def is_blocked(self, x, y):
+		"""
+			Callback function which will be called by the visibility calculator to check
+			if a certain position is blocked
+		"""
+		return (x, y) in self.blocked
+
+	def set_visible(self, x, y):
+		"""
+			Callback function which will be called to notify a certain tile is visible
+			from a certain point
+		"""
+
+		self.visibility[(x, y)] += 1
+
 
 	def tick(self):
 		"""

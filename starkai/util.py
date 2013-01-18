@@ -129,7 +129,7 @@ class Counter(dict):
 			will remain the same. Note that normalizing an empty
 			Counter will result in an error.
 		"""
-		total = float(self.totalCount())
+		total = float(self.total_count())
 		if total == 0: return
 		for key in self.keys():
 			self[key] = self[key] / total

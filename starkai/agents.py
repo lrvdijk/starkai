@@ -20,15 +20,17 @@ class PositionState(BaseState):
 		A state class used for Q-learning,
 	"""
 
-	def __init__(self, position, my_influence, enemy_influence, final_influence):
+	def __init__(self, position, my_influence, enemy_influence, final_influence, visibility_map):
 		"""
 			Initialize the state
 		"""
 
 		self.position = position
+
 		self.my_influence = my_influence
 		self.enemy_influence = enemy_influence
 		self.final_influence = final_influence
+		self.visibility_map = visibility_map
 
 	def get_legal_actions(self):
 		actions = [
@@ -53,7 +55,8 @@ class PositionState(BaseState):
 		return {
 			'my-influence': self.my_influence.get_influence(position),
 			'enemy-influence': self.enemy_influence.get_influence(position),
-			'final-influence': self.enemy_influence.get_influence(position)
+			'final-influence': self.enemy_influence.get_influence(position),
+			'visibility': self.visibility_map[position]
 		}
 
 class GeneralAgent(object):
@@ -90,13 +93,3 @@ class GeneralAgent(object):
 		if self.bot.health <= 0:
 			state =
 		# Find new position
-
-
-
-
-
-
-
-
-
-

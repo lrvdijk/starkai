@@ -23,7 +23,7 @@ class BaseInfluenceMap(object):
 	
 	def __init__(self, decay=0.2, momentum=0.5):
 		self.decay = decay
-		self.momentum = mometum
+		self.momentum = momentum
 		
 		self.influence = Counter()
 	
@@ -76,14 +76,13 @@ class BaseInfluenceMap(object):
 		"""
 		
 		new_map = self.__class__()
-		new_map.set_blocked(self.blocked)
 		
 		for key in self.influence:
-			new_map[key] = self.influence[key] + other.influence[key]
+			new_map.influence[key] = self.influence[key] + other.influence[key]
 		
 		for key in other.influence:
 			if not key in self.influence:
-				new_map[key] = other.influence[key]
+				new_map.influence[key] = other.influence[key]
 		
 		return new_map
 		
@@ -96,14 +95,13 @@ class BaseInfluenceMap(object):
 		"""
 		
 		new_map = self.__class__()
-		new_map.set_blocked(self.blocked)
 		
 		for key in self.influence:
-			new_map[key] = self.influence[key] - other.influence[key]
+			new_map.influence[key] = self.influence[key] - other.influence[key]
 		
 		for key in other.influence:
 			if not key in self.influence:
-				new_map[key] = other.influence[key]
+				new_map.influence[key] = other.influence[key]
 		
 		return new_map
 	
@@ -113,10 +111,9 @@ class BaseInfluenceMap(object):
 		"""
 		
 		new_map = self.__class__()
-		new_map.set_blocked(self.blocked)
 		
 		for key in self.influence:
-			new_map[key] = self.influence[key] * scalar
+			new_map.influence[key] = self.influence[key] * scalar
 		
 		
 		return new_map
@@ -126,21 +123,13 @@ class GridInfluenceMap(BaseInfluenceMap):
 		Influence map for grid based worlds
 	"""
 	
-	def __init__(self, decay=0.2, momentum=0.5, width=0, height=0):
+	def __init__(self, decay=0.2, momentum=0.5, width=0, height=0, is_blocked=lambda x, y: False):
 		BaseInfluenceMap.__init__(self, decay, momentum)
 		
 		self.width = width
 		self.height = height
 		
-		self.blocked = []
-	
-	def set_blocked(self, blocked):
-		"""
-			This is a list containing (x, y) tuples, for each location 
-			which is 'blocked', for example a wall or water.
-		"""
-		
-		self.blocked = blocked
+		self.is_blocked = is_blocked
 	
 	def get_neighbours(self, position):
 		neighbours = []
@@ -155,7 +144,7 @@ class GridInfluenceMap(BaseInfluenceMap):
 		for action in actions:
 			new_pos = (position[0] + action[0], position[1] + action[1])
 			
-			if new_pos in self.blocked:
+			if self.is_blocked(new_pos):
 				continue
 			
 			if new_pos[0] < 0 or new_pos[0] >= self.width:
@@ -166,4 +155,22 @@ class GridInfluenceMap(BaseInfluenceMap):
 			
 			neighbours.append(new_pos)
 		
-		return neighbours	
+		return neighbours
+
+	def __add__(self, other):
+		new_map = BaseInfluenceMap.__add__(self, other)
+		new_map.is_blocked = self.is_blocked
+
+		return new_map
+
+	def __sub__(self, other):
+		new_map = BaseInfluenceMap.__sub__(self, other)
+		new_map.is_blocked = self.is_blocked
+
+		return new_map
+
+	def __mul__(self, other):
+		new_map = BaseInfluenceMap.__mul__(self, other)
+		new_map.is_blocked = self.is_blocked
+
+		return new_map

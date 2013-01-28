@@ -15,34 +15,6 @@ from abc import abstractmethod, ABCMeta
 from starkai.util import flip_coin, Counter
 import random
 
-class BaseState(object):
-	"""
-		Abstract game state representation
-
-		When you subclass this, only include information you actually need
-		for Q-learning.
-	"""
-
-	__metaclass__ = ABCMeta
-
-	@abstractmethod
-	def get_legal_actions(self):
-		"""
-			Return a list of actions an agent can peform while in the current
-			state
-		"""
-		pass
-
-	def get_features(self, action):
-		"""
-			Return the features you want to use for an approximate q-learner.
-
-			Must be a dictionary in the format of {'feature-name': current_value}
-		"""
-
-		return {}
-
-
 class BaseQLearner(object):
 	"""
 		Base class for a q-learner agent

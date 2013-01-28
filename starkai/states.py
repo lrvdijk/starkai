@@ -12,6 +12,7 @@ game info to each bot.
 """
 
 from math import floor
+from starkai.util import iround
 
 # Define some actions a bot can take
 MOVE_N = (0, 1)
@@ -59,7 +60,7 @@ class GameState(object):
 		actions = []
 
 		for action in ACTIONS:
-			new_pos = (floor(bot_state[0] + action[0]), floor(bot_state[1] + action[1]))
+			new_pos = (iround(bot_state[0] + action[0]), iround(bot_state[1] + action[1]))
 
 			if not self.is_blocked(new_pos):
 				actions.append(action)
@@ -77,12 +78,7 @@ class BotState(object):
 			Initialize the state
 		"""
 
-		self.position = (floor(x), floor(y))
+		self.position = (iround(x), iround(y))
 
 	def __getitem__(self, item):
 		return self.position[item]
-
-
-
-
-

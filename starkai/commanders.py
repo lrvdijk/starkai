@@ -11,17 +11,18 @@ The classes in this module control all the bots in a certain game
 """
 
 from api import Commander
-from api import commands
 from api import Vector2
 from api.gameinfo import MatchCombatEvent
 from math import floor
 import random
 
-from starkai.util import Counter
+from starkai import agents
 from starkai.influencemap import GridInfluenceMap
 from starkai.visibility import Wave
-from starkai import agents
+from starkai.qlearner import ApproximateQLearner
+from starkai.qfeatures import MapFeatureProvider
 from starkai.states import GameState
+from starkai.util import Counter
 
 class RobbStarkCommander(Commander):
 	"""
@@ -92,7 +93,11 @@ class RobbStarkCommander(Commander):
 
 		print " finished"
 
-		# Roles for each bot
+		# Initialize roles for each bot
+		northman_features = MapFeatureProvider(self.my_influence, self.enemy_influence,
+			self.final_influence, self.visibility)
+		agents.Northman.set_qlearner(ApproximateQLearner(northman_features))
+
 		self.roles = {}
 
 	def tick(self):
@@ -102,26 +107,13 @@ class RobbStarkCommander(Commander):
 
 		for bot in self.game.bots_alive:
 			if not bot.name in self.roles:
-				self.roles[bot.name] = agents.Northman(bot, self, 0.5)
-
-		# Check for new events
-		index = 0
-
-		for event in self.game.combatEvents:
-			if event.type == MatchCombatEvent.TYPE_KILLED:
-				if event.subject.name in self.roles:
-					self.roles[event.subject.name].died()
-					del self.roles[event.subject.name]
-
-			index += 1
-
-		del self.game.combatEvents[0:index+1]
+				self.roles[bot.name] = agents.Northman(bot, self, -0.5)
 
 		# Update influence maps
 		for bot in self.game.bots_alive:
 			self.my_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
-		# If there are some enemy bots visible at the beginning, add them to the influence map
+		# If there are some enemy bots visible, add them to the influence map
 		for bot in self.game.enemyTeam.members:
 			if bot.health > 0:
 				print bot.position
@@ -134,8 +126,32 @@ class RobbStarkCommander(Commander):
 		self.enemy_influence.update_map()
 		self.goal_influence.update_map()
 
+		# Check for new events
+		for event in self.game.combatEvents:
+			if event.subject.name in self.roles:
+				action = self.roles[event.subject.name].handle_event(event)
+
+				if action:
+					self.commandQueue.append(action)
+
+			if event.instigator.name in self.roles:
+				action = self.roles[event.instigator.name].handle_event(event)
+
+				if action:
+					self.commandQueue.append(action)
+
+			if event.type == MatchCombatEvent.TYPE_KILLED:
+				if event.subject.name in self.roles:
+					self.roles[event.subject.name].died()
+					del self.roles[event.subject.name]
+
+		self.game.combatEvents[:] = []
+
 		for bot in self.game.bots_available:
-			self.roles[bot.name].issue_new_command()
+			action = self.roles[bot.name].handle_event()
+
+			if action:
+				self.commandQueue.append(action)
 
 
 

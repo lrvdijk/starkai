@@ -28,6 +28,9 @@ def flip_coin(p):
 
 	return p < r
 
+def iround(num):
+	return int(num - 0.5 if num < 0 else num + 0.5)
+
 class Counter(dict):
 	"""
 		A counter keeps track of counts for a set of keys.

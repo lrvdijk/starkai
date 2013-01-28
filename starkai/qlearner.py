@@ -104,9 +104,10 @@ class ApproximateQLearner(BaseQLearner):
 		and update the q-values (the weights of each feature) as we play.
 	"""
 
-	def __init__(self, **args):
+	def __init__(self, feature_extractor, **args):
 		BaseQLearner.__init__(self, **args)
 
+		self.extractor = feature_extractor
 		self.weights = Counter()
 
 	def set_weights(self, weights):
@@ -126,7 +127,7 @@ class ApproximateQLearner(BaseQLearner):
 			Returns the q-value based on the given features
 		"""
 
-		features = state.get_features(action)
+		features = self.extractor.get_features(state, action)
 
 		qvalue = 0
 		for feature in features:
@@ -143,7 +144,7 @@ class ApproximateQLearner(BaseQLearner):
 		"""
 
 		correction = reward + self.gamma * self.get_value(next_state) - self.get_qvalue(state, action)
-		features = state.get_features(action)
+		features = self.extractor.get_features(state, action)
 
 		for feature in features:
 			self.weights[feature] += self.alpha * correction * features[feature]

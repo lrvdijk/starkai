@@ -17,6 +17,8 @@ from api.gameinfo import MatchCombatEvent
 from api.commands import Move, Attack, Charge
 from api.vector2 import Vector2
 
+available = ['Northman']
+
 class Northman(object):
 	"""
 		A general agent, can attack and defend

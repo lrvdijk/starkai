@@ -11,7 +11,6 @@ game info to each bot.
 .. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
 
-from math import floor
 from starkai.util import iround
 
 # Define some actions a bot can take

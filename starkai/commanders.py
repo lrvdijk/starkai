@@ -9,14 +9,16 @@ The classes in this module control all the bots in a certain game
 
 .. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
+from __future__ import division
+from math import floor, exp
+import random
+import sys
 
 from api import Commander
 from api import Vector2
 from api.gameinfo import MatchCombatEvent
-from math import floor
-import random
 
-from starkai import agents
+from starkai import agents, qvalues
 from starkai.influencemap import GridInfluenceMap
 from starkai.visibility import Wave
 from starkai.qlearner import ApproximateQLearner
@@ -94,9 +96,25 @@ class RobbStarkCommander(Commander):
 		print " finished"
 
 		# Initialize roles for each bot
-		northman_features = MapFeatureProvider(self.my_influence, self.enemy_influence,
-			self.final_influence, self.visibility)
-		agents.Northman.set_qlearner(ApproximateQLearner(northman_features))
+		self.learners = {}
+		for agent in agents.available:
+			if agent in dir(agents):
+				cls = getattr(agents, agent)
+
+				features = MapFeatureProvider(self.my_influence, self.enemy_influence,
+					self.final_influence, self.visibility)
+
+				learner = ApproximateQLearner(features,
+					alpha=self.alpha,
+					gamma=self.gamma,
+					epsilon=self.epsilon
+				)
+
+				if agent in qvalues.latest:
+					learner.set_weights(qvalues.latest[agent])
+
+				self.learners[agent] = learner
+				cls.set_qlearner(learner)
 
 		self.roles = {}
 
@@ -152,6 +170,66 @@ class RobbStarkCommander(Commander):
 
 			if action:
 				self.commandQueue.append(action)
+
+
+	def alpha(self):
+		"""
+			Returns the learning rate based on the time elapsed
+		"""
+
+		return 0.15 + (1/5)*exp(-self.game.match.timePassed/75)
+
+	def gamma(self):
+		"""
+			Returns discount factor
+		"""
+
+		return 0.8
+
+	def epsilon(self):
+		"""
+			Returns the exploration rate based on the time elapsed
+		"""
+
+		return 0.05 + (1/8)*exp(-self.game.match.timePassed/50)
+
+	def shutdown(self):
+		"""
+			Called after each match, stores the updated q-values in a file.
+		"""
+
+		for agent in self.learners:
+			qvalues.latest[agent] = self.learners[agent].weights
+
+		code = 'latest = {\n'
+
+		for key, value in qvalues.latest.iteritems():
+			code += "\t'{key}': {\n".format(key=key)
+
+			features = []
+			for feature, f_value in value.iteritems():
+				features.append("\t\t'{key}': {value}".format(key=feature, value=f_value))
+
+			code += ',\n'.join(features)
+			code += '\n\t},\n'
+
+		code = code[0:-2] + '\n}'
+
+		try:
+			with open(qvalues.__file__, 'w') as output, open(qvalues.__file__ + '.tpl', 'r') as tpl:
+				output.write(tpl.read().format(qvalues=code))
+		except IOError as e:
+			print >>sys.stderr, "Could not save qvalues to file..."
+			import traceback
+			traceback.print_exc()
+			print
+			print >>sys.stderr, "-" * 15
+			print >>sys.stderr, code
+			print >>sys.stderr, "-" * 15
+
+
+
+
 
 
 

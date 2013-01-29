@@ -33,7 +33,7 @@ class RobbStarkCommander(Commander):
 
 	def initialize(self):
 		self.verbose = True
-		self.state = GameState(self.game)
+		self.state = GameState(self.level)
 
 		# Setup some influence maps
 		self.my_influence = GridInfluenceMap(width=self.level.width, height=self.level.height,
@@ -52,7 +52,7 @@ class RobbStarkCommander(Commander):
 				print bot.position
 				self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
-		for flag in self.game.enemy_flags:
+		for flag in self.game.enemyFlags:
 			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 2.0)
 
 		# Let the values propagate a bit
@@ -68,7 +68,7 @@ class RobbStarkCommander(Commander):
 		self.visibility = Counter()
 
 		for i in range(1000):
-			point = Vector2(random.randint(0, self.level.width), random.randint(0, self.level.height))
+			point = Vector2(random.randint(0, self.level.width - 1), random.randint(0, self.level.height - 1))
 
 			visible_cells = []
 
@@ -76,10 +76,10 @@ class RobbStarkCommander(Commander):
 				delta = (p-point)
 				l = delta.length()
 
-				return l <= self.game.characterRadius
+				return l <= self.level.characterRadius
 
 			wave = Wave((self.level.width, self.level.height),
-				lambda x, y: self.game.blockHeights[x][y] > 1,
+				lambda x, y: self.level.blockHeights[x][y] > 1,
 				lambda x, y: visible_cells.append((x, y))
 			)
 
@@ -104,7 +104,7 @@ class RobbStarkCommander(Commander):
 				features = MapFeatureProvider(self.my_influence, self.enemy_influence,
 					self.final_influence, self.visibility)
 
-				learner = ApproximateQLearner(features,
+				learner = ApproximateQLearner(self.state, features,
 					alpha=self.alpha,
 					gamma=self.gamma,
 					epsilon=self.epsilon
@@ -137,7 +137,7 @@ class RobbStarkCommander(Commander):
 				print bot.position
 				self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
-		for flag in self.game.enemy_flags:
+		for flag in self.game.enemyFlags:
 			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 2.0)
 
 		self.my_influence.update_map()
@@ -145,25 +145,26 @@ class RobbStarkCommander(Commander):
 		self.goal_influence.update_map()
 
 		# Check for new events
-		for event in self.game.combatEvents:
-			if event.subject.name in self.roles:
-				action = self.roles[event.subject.name].handle_event(event)
-
-				if action:
-					self.commandQueue.append(action)
-
-			if event.instigator.name in self.roles:
-				action = self.roles[event.instigator.name].handle_event(event)
-
-				if action:
-					self.commandQueue.append(action)
-
-			if event.type == MatchCombatEvent.TYPE_KILLED:
+		if hasattr(self.game, 'combatEvents'):
+			for event in self.game.combatEvents:
 				if event.subject.name in self.roles:
-					self.roles[event.subject.name].died()
-					del self.roles[event.subject.name]
+					action = self.roles[event.subject.name].handle_event(event)
 
-		self.game.combatEvents[:] = []
+					if action:
+						self.commandQueue.append(action)
+
+				if event.instigator.name in self.roles:
+					action = self.roles[event.instigator.name].handle_event(event)
+
+					if action:
+						self.commandQueue.append(action)
+
+				if event.type == MatchCombatEvent.TYPE_KILLED:
+					if event.subject.name in self.roles:
+						self.roles[event.subject.name].died()
+						del self.roles[event.subject.name]
+
+			self.game.combatEvents[:] = []
 
 		for bot in self.game.bots_available:
 			action = self.roles[bot.name].handle_event()

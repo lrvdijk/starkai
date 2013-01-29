@@ -39,12 +39,12 @@ class GameState(object):
 		Overall game state
 	"""
 
-	def __init__(self, gameinfo):
-		self.gameinfo = gameinfo
+	def __init__(self, levelinfo):
+		self.levelinfo = levelinfo
 
 		self.blocked = []
 
-		for x, ylist in enumerate(self.gameinfo.blockHeights):
+		for x, ylist in enumerate(self.levelinfo.blockHeights):
 			for y, value in enumerate(ylist):
 				if value > 0:
 					self.blocked.append((x, y))
@@ -60,6 +60,12 @@ class GameState(object):
 
 		for action in ACTIONS:
 			new_pos = (iround(bot_state[0] + action[0]), iround(bot_state[1] + action[1]))
+
+			if new_pos[0] < 0 or new_pos[1] < 0:
+				continue
+
+			if new_pos[0] >= self.levelinfo.width or new_pos[1] >= self.levelinfo.height:
+				continue
 
 			if not self.is_blocked(new_pos):
 				actions.append(action)

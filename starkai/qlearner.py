@@ -12,6 +12,7 @@ uses a method based on Q-values.
 """
 
 from abc import abstractmethod, ABCMeta
+from starkai.states import GameState
 from starkai.util import flip_coin, Counter
 import random
 
@@ -22,7 +23,7 @@ class BaseQLearner(object):
 
 	__metaclass__ = ABCMeta
 
-	def __init__(self, epsilon=0.05, alpha=0.2, gamma=0.8):
+	def __init__(self, gamestate, epsilon=0.05, alpha=0.2, gamma=0.8):
 		"""
 			Initializes the Q-learner, with the following parameters:
 
@@ -31,6 +32,7 @@ class BaseQLearner(object):
 			* gamma: discount factor
 		"""
 
+		self.gamestate = gamestate
 		self._epsilon = epsilon
 		self._alpha = alpha
 		self._gamma = gamma
@@ -77,7 +79,7 @@ class BaseQLearner(object):
 			are available
 		"""
 
-		legal_actions = state.get_legal_actions()
+		legal_actions = self.gamestate.get_legal_actions(state)
 		return max([self.get_qvalue(state, action) for action in legal_actions]) if legal_actions else 0
 
 	def get_action(self, state):
@@ -85,7 +87,7 @@ class BaseQLearner(object):
 			Returns the best action available an agent can take in the given state
 		"""
 
-		actions = state.get_legal_actions()
+		actions = self.gamestate.get_legal_actions(state)
 
 		if not actions:
 			return None
@@ -104,8 +106,8 @@ class ApproximateQLearner(BaseQLearner):
 		and update the q-values (the weights of each feature) as we play.
 	"""
 
-	def __init__(self, feature_extractor, **args):
-		BaseQLearner.__init__(self, **args)
+	def __init__(self, gamestate, feature_extractor, **args):
+		BaseQLearner.__init__(self, gamestate, **args)
 
 		self.extractor = feature_extractor
 		self.weights = Counter()

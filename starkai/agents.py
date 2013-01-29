@@ -66,14 +66,14 @@ class Northman(object):
 		if self.last_action and reward:
 			self.qlearner.update(self.current_state, self.last_action, new_state, reward)
 
-		if not (event.type == MatchCombatEvent.TYPE_KILLED and event.subject == self.bot):
+		if not event or not (event.type == MatchCombatEvent.TYPE_KILLED and event.subject == self.bot):
 			# Issue a new command
 			action = self.qlearner.get_action(new_state)
 
 			if self.commander.enemy_influence < 0.1:
-				return Move(self.bot, Vector2(action[0]+0.5, action[1]+0.5), "running")
+				return Move(self.bot.name, Vector2(action[0]+0.5, action[1]+0.5), "running")
 			else:
-				return Attack(self.bot, Vector2(action[0]+0.5, action[1]+0.5), "attacking")
+				return Attack(self.bot.name, Vector2(action[0]+0.5, action[1]+0.5), lookAt=None, description="attacking")
 
 		return None
 

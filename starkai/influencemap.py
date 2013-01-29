@@ -31,7 +31,7 @@ class BaseInfluenceMap(object):
 		self.influence[position] = influence
 	
 	def get_influence(self, position):
-		return self.influence[position]
+		return self.influence[position] if position in self.influence else 0.0
 		
 	@abstractmethod
 	def get_neighbours(self, position):
@@ -78,7 +78,7 @@ class BaseInfluenceMap(object):
 		new_map = self.__class__()
 		
 		for key in self.influence:
-			new_map.influence[key] = self.influence[key] + other.influence[key]
+			new_map.influence[key] = self.influence[key] + other.get_influence(key)
 		
 		for key in other.influence:
 			if not key in self.influence:
@@ -97,7 +97,7 @@ class BaseInfluenceMap(object):
 		new_map = self.__class__()
 		
 		for key in self.influence:
-			new_map.influence[key] = self.influence[key] - other.influence[key]
+			new_map.influence[key] = self.influence[key] - other.get_influence(key)
 		
 		for key in other.influence:
 			if not key in self.influence:

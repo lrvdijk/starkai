@@ -9,7 +9,7 @@ This module contains a class for creating and modifying influence maps.
   
 .. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
-
+from __future__ import division
 import math
 import functools
 import random

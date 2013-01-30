@@ -11,4 +11,12 @@ this file will be overwritten after each run.
 .. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
 
-latest = {}
+latest = {
+	'Northman': {
+		'final-influence': 50,
+		'enemy-influece': -1,
+		'my-influence': 1,
+		'visibility': 1
+
+	}
+}

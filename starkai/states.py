@@ -85,5 +85,8 @@ class BotState(object):
 
 		self.position = (iround(x), iround(y))
 
+	def __eq__(self, other):
+		return self.position == other.position
+
 	def __getitem__(self, item):
 		return self.position[item]

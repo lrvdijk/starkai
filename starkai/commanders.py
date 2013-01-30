@@ -49,11 +49,10 @@ class RobbStarkCommander(Commander):
 		# If there are some enemy bots visible at the beginning, add them to the influence map
 		for bot in self.game.enemyTeam.members:
 			if bot.health > 0:
-				print bot.position
 				self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
 		for flag in self.game.enemyFlags:
-			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 2.0)
+			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 3.0)
 
 		# Let the values propagate a bit
 		self.my_influence.update_map(3)
@@ -134,7 +133,6 @@ class RobbStarkCommander(Commander):
 		# If there are some enemy bots visible, add them to the influence map
 		for bot in self.game.enemyTeam.members:
 			if bot.health > 0:
-				print bot.position
 				self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
 		for flag in self.game.enemyFlags:
@@ -205,7 +203,7 @@ class RobbStarkCommander(Commander):
 		code = 'latest = {\n'
 
 		for key, value in qvalues.latest.iteritems():
-			code += "\t'{key}': {\n".format(key=key)
+			code += "\t'{key}': {{\n".format(key=key)
 
 			features = []
 			for feature, f_value in value.iteritems():

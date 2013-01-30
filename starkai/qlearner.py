@@ -145,11 +145,18 @@ class ApproximateQLearner(BaseQLearner):
 			Update the q-values, and in this case the weights of each feature.
 		"""
 
+		print "Alpha: {0}, Gamma: {1}, Epsilon: {2}".format(self.alpha, self.gamma, self.epsilon)
+		print "Current value of next state: {0}, Q-Value for current state-action: {1}".format(self.get_value(next_state), self.get_qvalue(state, action))
 		correction = reward + self.gamma * self.get_value(next_state) - self.get_qvalue(state, action)
 		features = self.extractor.get_features(state, action)
+		print "Correction:", correction
+		print "Features:", features
 
 		for feature in features:
 			self.weights[feature] += self.alpha * correction * features[feature]
+			print "Weight of", feature, "is", self.weights[feature]
+
+		print
 
 
 

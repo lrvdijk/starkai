@@ -22,9 +22,14 @@ from starkai import agents, qvalues
 from starkai.influencemap import GridInfluenceMap
 from starkai.visibility import Wave
 from starkai.qlearner import ApproximateQLearner
-from starkai.qfeatures import MapFeatureProvider
+from starkai.qfeatures import FlagSearcherFeatureProvider
 from starkai.states import GameState
 from starkai.util import Counter
+
+DEBUG = True
+
+if DEBUG:
+	from starkai.visualizer import VisualizerWindow
 
 class RobbStarkCommander(Commander):
 	"""
@@ -34,38 +39,43 @@ class RobbStarkCommander(Commander):
 	def initialize(self):
 		self.verbose = True
 		self.state = GameState(self.level)
+		self.counter = 0
 
 		# Setup some influence maps
-		self.my_influence = GridInfluenceMap(width=self.level.width, height=self.level.height,
+		self.my_influence = GridInfluenceMap(0.3, 0.9, self.level.width, self.level.height,
 			is_blocked=self.state.is_blocked)
-		self.enemy_influence = GridInfluenceMap(width=self.level.width, height=self.level.height,
+		self.enemy_influence = GridInfluenceMap(0.3, 0.9, self.level.width, self.level.height,
 			is_blocked=self.state.is_blocked)
-		self.goal_influence = GridInfluenceMap(0.7, 0.8, self.level.width, self.level.height,
+		self.goal_influence = GridInfluenceMap(0.005, 0.3, self.level.width, self.level.height,
 			is_blocked=self.state.is_blocked)
 
-		for bot in self.game.bots_alive:
-			self.my_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
+		print "Calculating influence maps..."
+		i = 0
+		while i < 5:
+			for bot in self.game.bots_alive:
+				self.my_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
-		# If there are some enemy bots visible at the beginning, add them to the influence map
-		for bot in self.game.enemyTeam.members:
-			if bot.health > 0:
-				self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
+			# If there are some enemy bots visible at the beginning, add them to the influence map
+			for bot in self.game.enemyTeam.members:
+				if bot.health > 0:
+					self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
-		for flag in self.game.enemyFlags:
-			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 3.0)
+			for flag in self.game.enemyFlags:
+				self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 1.0)
 
-		# Let the values propagate a bit
-		self.my_influence.update_map(3)
-		self.enemy_influence.update_map(3)
-		self.goal_influence.update_map(3)
+			# Let the values propagate a bit
+			self.my_influence.update_map()
+			self.enemy_influence.update_map()
+			self.goal_influence.update_map()
+			i += 1
 
-		self.influence_map = self.my_influence - self.enemy_influence
-		self.final_influence = self.influence_map + self.goal_influence
+			print i
 
 		# Calculate visibility map
 		print "Calculating visibility map..."
 		self.visibility = Counter()
 
+		max_visibility = 0
 		for i in range(1000):
 			point = Vector2(random.randint(0, self.level.width - 1), random.randint(0, self.level.height - 1))
 
@@ -74,6 +84,7 @@ class RobbStarkCommander(Commander):
 			def visible(p):
 				delta = (p-point)
 				l = delta.length()
+				print l
 
 				return l <= self.level.characterRadius
 
@@ -86,11 +97,16 @@ class RobbStarkCommander(Commander):
 
 			for x, y in [c for c in visible_cells if visible(Vector2(c[0]+0.5, c[1]+0.5))]:
 				self.visibility[(x, y)] += 1
+				print x, y, self.visibility[(x, y)]
+
+				max_visibility = max(self.visibility[(x, y)], max_visibility)
 
 			if i % 100 == 0:
 				print ".",
 
-		self.visibility.normalize()
+		self.visibility.divide_all(max_visibility)
+
+		print self.visibility
 
 		print " finished"
 
@@ -100,8 +116,7 @@ class RobbStarkCommander(Commander):
 			if agent in dir(agents):
 				cls = getattr(agents, agent)
 
-				features = MapFeatureProvider(self.my_influence, self.enemy_influence,
-					self.final_influence, self.visibility)
+				features = cls.feature_class(self)
 
 				learner = ApproximateQLearner(self.state, features,
 					alpha=self.alpha,
@@ -117,10 +132,16 @@ class RobbStarkCommander(Commander):
 
 		self.roles = {}
 
+		# Setup visualizer window
+		if DEBUG:
+			self.window = VisualizerWindow(self)
+
 	def tick(self):
 		"""
 			Time to issue new commands!
 		"""
+
+		self.counter += 1
 
 		for bot in self.game.bots_alive:
 			if not bot.name in self.roles:
@@ -136,15 +157,24 @@ class RobbStarkCommander(Commander):
 				self.enemy_influence.set_influence((floor(bot.position.x), floor(bot.position.y)), 1.0)
 
 		for flag in self.game.enemyFlags:
-			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 2.0)
+			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 1.0)
 
-		self.my_influence.update_map()
-		self.enemy_influence.update_map()
-		self.goal_influence.update_map()
+		if self.counter >= 10:
+			print "update maps"
+			self.my_influence.update_map()
+			self.enemy_influence.update_map()
+			self.goal_influence.update_map()
+
+			self.counter = 0
 
 		# Check for new events
 		if hasattr(self.game, 'combatEvents'):
 			for event in self.game.combatEvents:
+				# Check for flag captured
+				if event.type in (MatchCombatEvent.TYPE_FLAG_CAPTURED, MatchCombatEvent.TYPE_FLAG_PICKEDUP):
+					if event.instigator.name in self.roles:
+						self.roles[event.instigator.name] = agents.FlagReturner(self)
+
 				if event.subject.name in self.roles:
 					action = self.roles[event.subject.name].handle_event(event)
 
@@ -159,7 +189,6 @@ class RobbStarkCommander(Commander):
 
 				if event.type == MatchCombatEvent.TYPE_KILLED:
 					if event.subject.name in self.roles:
-						self.roles[event.subject.name].died()
 						del self.roles[event.subject.name]
 
 			self.game.combatEvents[:] = []
@@ -170,6 +199,8 @@ class RobbStarkCommander(Commander):
 			if action:
 				self.commandQueue.append(action)
 
+		if DEBUG:
+			self.window.tick()
 
 	def alpha(self):
 		"""
@@ -225,6 +256,9 @@ class RobbStarkCommander(Commander):
 			print >>sys.stderr, "-" * 15
 			print >>sys.stderr, code
 			print >>sys.stderr, "-" * 15
+
+		if DEBUG:
+			del self.window
 
 
 

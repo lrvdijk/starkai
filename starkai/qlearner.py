@@ -96,9 +96,11 @@ class BaseQLearner(object):
 			return random.choice(actions)
 		else:
 			highest = max([self.get_qvalue(state, action) for action in actions])
+			print "Highest:", highest
 
 			best_actions = [action for action in actions if self.get_qvalue(state, action) == highest]
-			return random.choice(best_actions)
+			print best_actions
+			return random.choice(best_actions) if best_actions else None
 
 class ApproximateQLearner(BaseQLearner):
 	"""
@@ -145,19 +147,19 @@ class ApproximateQLearner(BaseQLearner):
 			Update the q-values, and in this case the weights of each feature.
 		"""
 
-		print "Alpha: {0}, Gamma: {1}, Epsilon: {2}".format(self.alpha, self.gamma, self.epsilon)
-		print "Current value of next state: {0}, Q-Value for current state-action: {1}".format(self.get_value(next_state), self.get_qvalue(state, action))
+		print "UPDATE -------"
 		correction = reward + self.gamma * self.get_value(next_state) - self.get_qvalue(state, action)
 		features = self.extractor.get_features(state, action)
+		print "Reward:", reward
+		print "Gamma:", self.gamma
 		print "Correction:", correction
-		print "Features:", features
+		print "-" * 10
 
 		for feature in features:
 			self.weights[feature] += self.alpha * correction * features[feature]
-			print "Weight of", feature, "is", self.weights[feature]
+			print feature, "-", self.weights[feature], "-", features[feature]
 
 		print
-
 
 
 

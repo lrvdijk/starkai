@@ -26,6 +26,7 @@ class BaseInfluenceMap(object):
 		self.momentum = momentum
 		
 		self.influence = Counter()
+
 	
 	def set_influence(self, position, influence):
 		self.influence[position] = influence
@@ -117,6 +118,9 @@ class BaseInfluenceMap(object):
 		
 		
 		return new_map
+
+	def __getitem__(self, item):
+		return self.get_influence(item)
 		
 class GridInfluenceMap(BaseInfluenceMap):
 	"""
@@ -130,6 +134,16 @@ class GridInfluenceMap(BaseInfluenceMap):
 		self.height = height
 		
 		self.is_blocked = is_blocked
+
+		# Initialize counter object with all known positions
+		queue = [(0,0)]
+		checked = set()
+		while queue:
+			position = queue.pop()
+			self.set_influence(position, 0.0)
+			checked.add(position)
+
+			queue.extend([neighbour[0] for neighbour in self.get_neighbours(position) if not neighbour[0] in checked])
 	
 	def get_neighbours(self, position):
 		neighbours = []
@@ -153,7 +167,7 @@ class GridInfluenceMap(BaseInfluenceMap):
 			if new_pos[1] < 0 or new_pos[1] >= self.height:
 				continue
 			
-			neighbours.append(new_pos)
+			neighbours.append((new_pos, 1))
 		
 		return neighbours
 

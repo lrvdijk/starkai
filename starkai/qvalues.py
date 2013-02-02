@@ -13,10 +13,11 @@ this file will be overwritten after each run.
 
 latest = {
 	'Northman': {
-		'final-influence': 50,
-		'enemy-influece': -1,
+		'goal-influence': 1,
+		'enemy-influece': 1,
 		'my-influence': 1,
-		'visibility': 1
-
+		'visibility': 1,
+		'flag-distance': 1,
+		'enemy-distance': -1
 	}
 }

@@ -13,6 +13,7 @@ from __future__ import division
 import math
 import functools
 import random
+import sys
 
 sign = functools.partial(math.copysign, 1)
 
@@ -30,6 +31,18 @@ def flip_coin(p):
 
 def iround(num):
 	return int(num - 0.5 if num < 0 else num + 0.5)
+
+def euclidean_dist(p1, p2):
+	return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def find_closest(iterable, position):
+	min_dist = sys.maxint
+	for pos in iterable:
+		dist = euclidean_dist(position, pos)
+
+		min_dist = min(min_dist, dist)
+
+	return min_dist
 
 class Counter(dict):
 	"""

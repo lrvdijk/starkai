@@ -11,7 +11,7 @@ game info to each bot.
 .. moduleauthor:: Lucas van Dijk <info@return1.net>
 """
 
-from starkai.util import iround
+from math import floor
 
 # Define some actions a bot can take
 MOVE_N = (0, 1)
@@ -39,12 +39,12 @@ class GameState(object):
 		Overall game state
 	"""
 
-	def __init__(self, levelinfo):
-		self.levelinfo = levelinfo
+	def __init__(self, commander):
+		self.commander = commander
 
 		self.blocked = []
 
-		for x, ylist in enumerate(self.levelinfo.blockHeights):
+		for x, ylist in enumerate(self.commander.level.blockHeights):
 			for y, value in enumerate(ylist):
 				if value > 0:
 					self.blocked.append((x, y))
@@ -59,15 +59,22 @@ class GameState(object):
 		actions = []
 
 		for action in ACTIONS:
-			new_pos = (iround(bot_state[0] + action[0]), iround(bot_state[1] + action[1]))
+			new_pos = (floor(bot_state[0] + action[0]), floor(bot_state[1] + action[1]))
 
 			if new_pos[0] < 0 or new_pos[1] < 0:
 				continue
 
-			if new_pos[0] >= self.levelinfo.width or new_pos[1] >= self.levelinfo.height:
+			if new_pos[0] >= self.commander.level.width or new_pos[1] >= self.commander.level.height:
 				continue
 
-			if not self.is_blocked(new_pos):
+			occupied = False
+			for bot in self.commander.game.team.members:
+				if bot.health > 0:
+					if (floor(bot.position.x), floor(bot.position.y)) == new_pos:
+						occupied = True
+						break
+
+			if not self.is_blocked(new_pos) and not occupied:
 				actions.append(action)
 
 		return actions
@@ -83,7 +90,7 @@ class BotState(object):
 			Initialize the state
 		"""
 
-		self.position = (iround(x), iround(y))
+		self.position = (floor(x), floor(y))
 
 	def __eq__(self, other):
 		return self.position == other.position

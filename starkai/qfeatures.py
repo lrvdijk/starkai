@@ -55,10 +55,10 @@ class FlagSearcherFeatureProvider(BaseFeatureProvider):
 		features['enemy-influence'] = self.commander.enemy_influence[position]
 		features['goal-influence'] = self.commander.goal_influence[position]
 		features['visibility'] = self.commander.visibility[position]
-		features['flag-distance'] = min_flag_dist / max_level_distance
+		features['flag-distance'] = 1.0 - (min_flag_dist / max_level_distance)
 		features['enemy-distance'] = min_enemy_dist / max_level_distance if min_enemy_dist != sys.maxint else 1.0
 
-		features.divide_all(10.0)
+		#features.divide_all(10.0)
 
 		return features
 
@@ -90,10 +90,10 @@ class FlagReturnerFeatureProvider(BaseFeatureProvider):
 		features['enemy-influence'] = self.commander.enemy_influence[position]
 		features['goal-influence'] = self.commander.goal_influence[position]
 		features['visibility'] = self.commander.visibility[position]
-		features['flag-distance'] = max_level_distance / score_dist
+		features['flag-distance'] = 1.0 - (score_dist / max_level_distance)
 		features['enemy-distance'] = min_enemy_dist / max_level_distance if min_enemy_dist != sys.maxint else 1.0
 
-		features.divide_all(10.0)
+		#features.divide_all(10.0)
 
 		return features
 

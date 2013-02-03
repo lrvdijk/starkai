@@ -12,12 +12,17 @@ this file will be overwritten after each run.
 """
 
 latest = {
+	'FlagReturner': {
+
+	},
 	'Northman': {
-		'goal-influence': 1,
+		'flag-distance': -88.1974348435,
+		'my-influence': 190.967663861,
 		'enemy-influece': 1,
-		'my-influence': 1,
-		'visibility': 1,
-		'flag-distance': 1,
-		'enemy-distance': -1
+		'visibility': -49.2067822794,
+		'goal-influence': 20.7306560385,
+		'bias': 2.51474165773,
+		'enemy-influence': -96.4453112776,
+		'enemy-distance': 84.1492412977
 	}
 }

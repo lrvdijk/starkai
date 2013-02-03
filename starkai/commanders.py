@@ -13,6 +13,7 @@ from __future__ import division
 from math import floor, exp
 import random
 import sys
+from datetime import datetime
 
 from api import Commander
 from api import Vector2
@@ -22,14 +23,16 @@ from starkai import agents, qvalues
 from starkai.influencemap import GridInfluenceMap
 from starkai.visibility import Wave
 from starkai.qlearner import ApproximateQLearner
-from starkai.qfeatures import FlagSearcherFeatureProvider
 from starkai.states import GameState
 from starkai.util import Counter
 
 DEBUG = True
 
 if DEBUG:
-	from starkai.visualizer import VisualizerWindow
+	try:
+		from starkai.visualizer import VisualizerWindow
+	except ImportError:
+		DEBUG = False
 
 class RobbStarkCommander(Commander):
 	"""
@@ -38,15 +41,16 @@ class RobbStarkCommander(Commander):
 
 	def initialize(self):
 		self.verbose = True
-		self.state = GameState(self.level)
+		self.state = GameState(self)
 		self.counter = 0
+		self.last_event_index = 0
 
 		# Setup some influence maps
-		self.my_influence = GridInfluenceMap(0.3, 0.9, self.level.width, self.level.height,
+		self.my_influence = GridInfluenceMap(0.2, 0.5, self.level.width, self.level.height,
 			is_blocked=self.state.is_blocked)
-		self.enemy_influence = GridInfluenceMap(0.3, 0.9, self.level.width, self.level.height,
+		self.enemy_influence = GridInfluenceMap(0.1, 0.6, self.level.width, self.level.height,
 			is_blocked=self.state.is_blocked)
-		self.goal_influence = GridInfluenceMap(0.005, 0.3, self.level.width, self.level.height,
+		self.goal_influence = GridInfluenceMap(0.01, 0.9, self.level.width, self.level.height,
 			is_blocked=self.state.is_blocked)
 
 		print "Calculating influence maps..."
@@ -84,9 +88,8 @@ class RobbStarkCommander(Commander):
 			def visible(p):
 				delta = (p-point)
 				l = delta.length()
-				print l
 
-				return l <= self.level.characterRadius
+				return l <= 15.0
 
 			wave = Wave((self.level.width, self.level.height),
 				lambda x, y: self.level.blockHeights[x][y] > 1,
@@ -97,7 +100,6 @@ class RobbStarkCommander(Commander):
 
 			for x, y in [c for c in visible_cells if visible(Vector2(c[0]+0.5, c[1]+0.5))]:
 				self.visibility[(x, y)] += 1
-				print x, y, self.visibility[(x, y)]
 
 				max_visibility = max(self.visibility[(x, y)], max_visibility)
 
@@ -105,8 +107,6 @@ class RobbStarkCommander(Commander):
 				print ".",
 
 		self.visibility.divide_all(max_visibility)
-
-		print self.visibility
 
 		print " finished"
 
@@ -136,6 +136,14 @@ class RobbStarkCommander(Commander):
 		if DEBUG:
 			self.window = VisualizerWindow(self)
 
+	@property
+	def influence(self):
+		return self.my_influence - self.enemy_influence
+
+	@property
+	def final_influence(self):
+		return (self.influence + self.goal_influence) / 2
+
 	def tick(self):
 		"""
 			Time to issue new commands!
@@ -159,7 +167,7 @@ class RobbStarkCommander(Commander):
 		for flag in self.game.enemyFlags:
 			self.goal_influence.set_influence((floor(flag.position.x), floor(flag.position.y)), 1.0)
 
-		if self.counter >= 10:
+		if self.counter >= 2:
 			print "update maps"
 			self.my_influence.update_map()
 			self.enemy_influence.update_map()
@@ -168,30 +176,44 @@ class RobbStarkCommander(Commander):
 			self.counter = 0
 
 		# Check for new events
-		if hasattr(self.game, 'combatEvents'):
-			for event in self.game.combatEvents:
-				# Check for flag captured
-				if event.type in (MatchCombatEvent.TYPE_FLAG_CAPTURED, MatchCombatEvent.TYPE_FLAG_PICKEDUP):
-					if event.instigator.name in self.roles:
-						self.roles[event.instigator.name] = agents.FlagReturner(self)
+		while self.last_event_index < len(self.game.match.combatEvents):
+			event = self.game.match.combatEvents[self.last_event_index]
 
-				if event.subject.name in self.roles:
-					action = self.roles[event.subject.name].handle_event(event)
+			types = {
+				MatchCombatEvent.TYPE_FLAG_CAPTURED: "Flag captured",
+				MatchCombatEvent.TYPE_FLAG_PICKEDUP: "Flag picked up",
+				MatchCombatEvent.TYPE_FLAG_DROPPED: "Flag Dropped",
+				MatchCombatEvent.TYPE_KILLED: "Bot Killed",
+				MatchCombatEvent.TYPE_FLAG_RESTORED: "Flag Restored",
+				MatchCombatEvent.TYPE_NONE: "None",
+				MatchCombatEvent.TYPE_RESPAWN: "Respawn"
+			}
 
-					if action:
-						self.commandQueue.append(action)
+			print "Event index:", self.last_event_index
+			print "Event:", types[event.type]
 
+			# Check for flag captured
+			if event.type == MatchCombatEvent.TYPE_FLAG_PICKEDUP:
 				if event.instigator.name in self.roles:
-					action = self.roles[event.instigator.name].handle_event(event)
+					self.roles[event.instigator.name] = agents.FlagReturner(self)
 
-					if action:
-						self.commandQueue.append(action)
+			if event.subject and event.subject.name in self.roles:
+				action = self.roles[event.subject.name].handle_event(event)
 
-				if event.type == MatchCombatEvent.TYPE_KILLED:
-					if event.subject.name in self.roles:
-						del self.roles[event.subject.name]
+				if action:
+					self.commandQueue.append(action)
 
-			self.game.combatEvents[:] = []
+			if event.instigator and event.instigator.name in self.roles:
+				action = self.roles[event.instigator.name].handle_event(event)
+
+				if action:
+					self.commandQueue.append(action)
+
+			if event.type == MatchCombatEvent.TYPE_KILLED:
+				if event.subject.name in self.roles:
+					del self.roles[event.subject.name]
+
+			self.last_event_index += 1
 
 		for bot in self.game.bots_available:
 			action = self.roles[bot.name].handle_event()
@@ -246,7 +268,8 @@ class RobbStarkCommander(Commander):
 		code = code[0:-2] + '\n}'
 
 		try:
-			with open(qvalues.__file__, 'w') as output, open(qvalues.__file__ + '.tpl', 'r') as tpl:
+			with open(qvalues.__file__.replace('.pyc', '') + datetime.now().strftime('%Y-%m-%d-%H-%M-%S') + '.py', 'w') as output, \
+				open(qvalues.__file__.replace('.pyc', '.py') + '.tpl', 'r') as tpl:
 				output.write(tpl.read().format(qvalues=code))
 		except IOError as e:
 			print >>sys.stderr, "Could not save qvalues to file..."

@@ -75,8 +75,8 @@ class BaseInfluenceMap(object):
 			
 			The new map has default values for decay and momentum
 		"""
-		
-		new_map = self.__class__()
+
+		new_map = self.__class__(self.decay, self.momentum)
 		
 		for key in self.influence:
 			new_map.influence[key] = self.influence[key] + other.get_influence(key)
@@ -94,8 +94,8 @@ class BaseInfluenceMap(object):
 			
 			The new map has default values for decay and momentum
 		"""
-		
-		new_map = self.__class__()
+
+		new_map = self.__class__(self.decay, self.momentum)
 		
 		for key in self.influence:
 			new_map.influence[key] = self.influence[key] - other.get_influence(key)
@@ -110,13 +110,24 @@ class BaseInfluenceMap(object):
 		"""
 			Multiplies each element with the given scalar
 		"""
-		
-		new_map = self.__class__()
+
+		new_map = self.__class__(self.decay, self.momentum)
 		
 		for key in self.influence:
 			new_map.influence[key] = self.influence[key] * scalar
 		
-		
+		return new_map
+
+	def __div__(self, scalar):
+		"""
+			Divides each element with the given scalar
+		"""
+
+		new_map = self.__class__(self.decay, self.momentum)
+
+		for key in self.influence:
+			new_map.influence[key] = self.influence[key] / scalar
+
 		return new_map
 
 	def __getitem__(self, item):
@@ -157,7 +168,7 @@ class GridInfluenceMap(BaseInfluenceMap):
 		
 		for action in actions:
 			new_pos = (position[0] + action[0], position[1] + action[1])
-			
+
 			if self.is_blocked(new_pos):
 				continue
 			
@@ -172,19 +183,56 @@ class GridInfluenceMap(BaseInfluenceMap):
 		return neighbours
 
 	def __add__(self, other):
-		new_map = BaseInfluenceMap.__add__(self, other)
-		new_map.is_blocked = self.is_blocked
+		new_map = self.__class__(self.decay, self.momentum, self.width, self.height, self.is_blocked)
+
+		for key in self.influence:
+			new_map.influence[key] = self.influence[key] + other.get_influence(key)
+
+		for key in other.influence:
+			if not key in self.influence:
+				new_map.influence[key] = other.influence[key]
 
 		return new_map
 
 	def __sub__(self, other):
-		new_map = BaseInfluenceMap.__sub__(self, other)
-		new_map.is_blocked = self.is_blocked
+		"""
+			Adds two influence maps to each other, and returns an union
+			of keys of both maps
+
+			The new map has default values for decay and momentum
+		"""
+
+		new_map = self.__class__(self.decay, self.momentum, self.width, self.height, self.is_blocked)
+
+		for key in self.influence:
+			new_map.influence[key] = self.influence[key] - other.get_influence(key)
+
+		for key in other.influence:
+			if not key in self.influence:
+				new_map.influence[key] = other.influence[key]
 
 		return new_map
 
-	def __mul__(self, other):
-		new_map = BaseInfluenceMap.__mul__(self, other)
-		new_map.is_blocked = self.is_blocked
+	def __mul__(self, scalar):
+		"""
+			Multiplies each element with the given scalar
+		"""
+
+		new_map = self.__class__(self.decay, self.momentum, self.width, self.height, self.is_blocked)
+
+		for key in self.influence:
+			new_map.influence[key] = self.influence[key] * scalar
+
+		return new_map
+
+	def __div__(self, scalar):
+		"""
+			Divides each element with the given scalar
+		"""
+
+		new_map = self.__class__(self.decay, self.momentum, self.width, self.height, self.is_blocked)
+
+		for key in self.influence:
+			new_map.influence[key] = self.influence[key] / scalar
 
 		return new_map

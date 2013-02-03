@@ -44,7 +44,9 @@ class VisualizerWindow(object):
 			'My Influence': 'my_influence',
 			'Enemy Influence': 'enemy_influence',
 			'Goal Influence': 'goal_influence',
-			'Visibility': 'visibility'
+			'Visibility': 'visibility',
+			'Influence': 'influence',
+			'Final Influence': 'final_influence'
 		}
 
 		map_combo = self.builder.get_object('comboMap')
@@ -78,6 +80,18 @@ class VisualizerWindow(object):
 		while Gtk.events_pending():
 			Gtk.main_iteration()
 
+		combo = self.builder.get_object('comboAgent')
+		agent = combo.get_active_text()
+
+		if agent:
+			self.fill_tree(agent)
+
+		# Update statusbar
+		statusbar = self.builder.get_object('statusbar')
+		statusbar.push(statusbar.get_context_id('status'),
+			"Epsilon: {0}, Alpha: {1}, Gamma: {2}".format(self.commander.epsilon(), self.commander.alpha(), self.commander.gamma())
+		)
+
 		self.builder.get_object('drawingGrid').queue_draw()
 
 	def on_agent_changed(self, combo):
@@ -110,6 +124,29 @@ class VisualizerWindow(object):
 					self.draw_pixel(ctx, x, y, (0, 0, 0))
 				elif self.commander.level.blockHeights[x][y] > 1:
 					self.draw_pixel(ctx, x, y, (0.1, 0.1, 0.1))
+				elif self.commander.level.blockHeights[x][y] > 0:
+					self.draw_pixel(ctx, x, y, (0.2, 0.2, 0.2))
+
+		# Draw flag and score locations
+		for team_name in self.commander.level.flagSpawnLocations:
+			stroke_color = (1.0, 1.0, 0.0)
+			if 'Red' in team_name:
+				fill_color = (1.0, 0.0, 0.0)
+			else:
+				fill_color = (0.0, 0.0, 1.0)
+
+			loc = self.commander.level.flagSpawnLocations[team_name]
+			self.draw_pixel(ctx, loc.x, loc.y, fill_color, stroke_color)
+
+		for team_name in self.commander.level.flagScoreLocations:
+			fill_color = (1.0, 1.0, 0.0)
+			if 'Red' in team_name:
+				stroke_color = (1.0, 0.0, 0.0)
+			else:
+				stroke_color = (0.0, 0.0, 1.0)
+
+			loc = self.commander.level.flagScoreLocations[team_name]
+			self.draw_pixel(ctx, loc.x, loc.y, fill_color, stroke_color)
 
 		# Draw bots
 		for name, bot in self.commander.game.bots.items():
@@ -147,7 +184,7 @@ class VisualizerWindow(object):
 
 					self.draw_pixel(ctx, x, y, color)
 
-	def draw_pixel(self, ctx, x, y, color):
+	def draw_pixel(self, ctx, x, y, color, stroke=None):
 		"""
 			Draws a pixel on the grid, scaled to match the window size
 		"""
@@ -158,6 +195,10 @@ class VisualizerWindow(object):
 		ctx.set_source_rgba(*color)
 		ctx.rectangle(x, y, self.scale_x, self.scale_y)
 		ctx.fill()
+
+		if stroke:
+			ctx.set_source_rgba(*stroke)
+			ctx.stroke()
 
 	def draw_circle(self, ctx, x, y, radius, color):
 		x = x * self.scale_x

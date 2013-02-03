@@ -78,8 +78,14 @@ class Northman(object):
 			action = self.qlearner.get_action(state)
 			self.last_action = action
 
-			if self.commander.enemy_influence.get_influence(state) < 0.1:
-				return Move(self.bot.name, Vector2(state[0] + action[0]+0.5, state[1] + action[1]+0.5), "running")
+			# Find closest enemy
+			min_enemy_dist = find_closest(
+				[(bot.position.x, bot.position.y) for bot in self.commander.game.enemyTeam.members if bot.seenlast < 5 and bot.health > 0],
+				state
+			)
+
+			if self.commander.enemy_influence.get_influence(state) < 0.1 or not min_enemy_dist < self.commander.level.firingDistance:
+				return Charge(self.bot.name, Vector2(state[0] + action[0]+0.5, state[1] + action[1]+0.5), "running")
 			else:
 				return Attack(self.bot.name, Vector2(state[0] + action[0]+0.5, state[1] + action[1]+0.5), lookAt=None, description="attacking")
 
@@ -96,7 +102,7 @@ class Northman(object):
 		if not event:
 			# Return reward based on the distance of the flag
 			min_flag_dist = find_closest([(flag.position.x, flag.position.y) for flag in self.commander.game.enemyFlags], state)
-			difference = self.flag_distance - min_flag_dist
+			difference = self.flag_distance**2 - min_flag_dist**2
 
 			self.flag_distance = min_flag_dist
 			return difference
@@ -142,7 +148,7 @@ class FlagReturner(Northman):
 			# Return reward based on the distance of the flag score location
 			score_loc = self.commander.game.team.flagScoreLocation
 			distance = euclidean_dist((score_loc.x, score_loc.y), state)
-			difference = self.score_dist - distance
+			difference = self.score_dist**2 - distance**2
 
 			self.score_dist = distance
 
@@ -150,8 +156,10 @@ class FlagReturner(Northman):
 		elif event.type == MatchCombatEvent.TYPE_KILLED:
 			if event.subject == self.bot:
 				# This bot has been killed
+				print "-------- BOT GOT KILLED ----------------"
 				return -100
 			elif event.instigator == self.bot:
+				print "-------- BOT KILLED ENEMY ----------------"
 				return 25
 		elif event.instigator == self.bot:
 			if event.type == MatchCombatEvent.TYPE_FLAG_RESTORED:
